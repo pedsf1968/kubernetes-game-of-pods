@@ -1,0 +1,57 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: drupal
+  name: drupal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: drupal
+  template:
+    metadata:
+      labels:
+        app: drupal
+    spec:
+      initContainers:
+      - name: init-sites-volume 
+        image: drupal:8.6
+        securityContext:
+          runAsUser: 33
+          runAsGroup: 33
+          allowPrivilegeEscalation: false
+        command: [ "/bin/bash", "-c"]
+        args: ['cp -r /var/www/html/sites/ /data/']
+        volumeMounts:
+        - name: drupal-storage
+          mountPath: /data
+      containers:
+      - name: drupal            
+        image: drupal:8.6
+        securityContext:
+          runAsUser: 33
+          runAsGroup: 33
+          allowPrivilegeEscalation: false
+        volumeMounts: 
+        - name: drupal-storage 
+          mountPath: /var/www/html/modules
+          subPath: modules
+        - name: drupal-storage
+          mountPath: /var/www/html/profiles
+          subPath: profiles  
+        - name: drupal-storage
+          mountPath: /var/www/html/sites
+          subPath: sites 
+        - name: drupal-storage
+          mountPath: /var/www/html/themes 
+          subPath: themes
+        ports:
+        - name: drupal
+          containerPort: 80
+          protocol: TCP
+      volumes:
+      - name: drupal-storage
+        persistentVolumeClaim:
+          claimName: drupal-pvc
